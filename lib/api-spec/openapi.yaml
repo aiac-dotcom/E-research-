@@ -1,0 +1,745 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: QA Intelligence Dashboard API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: upload
+    description: Excel file upload
+  - name: dashboard
+    description: Dashboard KPIs and summaries
+  - name: testcases
+    description: Test case management
+  - name: defects
+    description: Defect tracking
+  - name: testers
+    description: Tester performance
+  - name: coverage
+    description: Test coverage by module
+  - name: activity
+    description: Recent activity feed
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /upload/excel:
+    post:
+      operationId: uploadExcel
+      tags: [upload]
+      summary: Upload Excel file and import QA data
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                dataType:
+                  type: string
+                  enum: [testcases, defects, coverage, testers]
+              required: [file, dataType]
+      responses:
+        "200":
+          description: Upload result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResult"
+        "400":
+          description: Bad request
+
+  /dashboard/kpis:
+    get:
+      operationId: getDashboardKpis
+      tags: [dashboard]
+      summary: Get top-level KPI summary
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: startDate
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: endDate
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: KPI data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardKpis"
+
+  /dashboard/trends:
+    get:
+      operationId: getDashboardTrends
+      tags: [dashboard]
+      summary: Get defect and pass rate trends over time
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+            default: weekly
+      responses:
+        "200":
+          description: Trend data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrendPoint"
+
+  /dashboard/risk-insights:
+    get:
+      operationId: getRiskInsights
+      tags: [dashboard]
+      summary: Smart risk analysis and actionable insights
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Risk insights
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiskInsights"
+
+  /dashboard/projects:
+    get:
+      operationId: getProjects
+      tags: [dashboard]
+      summary: Get list of all projects
+      responses:
+        "200":
+          description: Projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+
+  /dashboard/sprints:
+    get:
+      operationId: getSprints
+      tags: [dashboard]
+      summary: Get list of sprints for a project
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Sprints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /testcases:
+    get:
+      operationId: getTestCases
+      tags: [testcases]
+      summary: List test cases with filters
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: module
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: assignedTo
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Test cases list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCasePage"
+
+  /testcases/by-status:
+    get:
+      operationId: getTestCasesByStatus
+      tags: [testcases]
+      summary: Count test cases grouped by status
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Status breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StatusCount"
+
+  /testcases/by-module:
+    get:
+      operationId: getTestCasesByModule
+      tags: [testcases]
+      summary: Count test cases grouped by module
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Module breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ModuleCount"
+
+  /defects:
+    get:
+      operationId: getDefects
+      tags: [defects]
+      summary: List defects with filters
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: severity
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: assignedTo
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Defects list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefectPage"
+
+  /defects/by-severity:
+    get:
+      operationId: getDefectsBySeverity
+      tags: [defects]
+      summary: Count defects grouped by severity
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Severity breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StatusCount"
+
+  /defects/by-status:
+    get:
+      operationId: getDefectsByStatus
+      tags: [defects]
+      summary: Count defects grouped by status
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Status breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StatusCount"
+
+  /testers:
+    get:
+      operationId: getTesters
+      tags: [testers]
+      summary: Tester performance summary
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Tester performance
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TesterPerformance"
+
+  /coverage:
+    get:
+      operationId: getCoverage
+      tags: [coverage]
+      summary: Test coverage by module
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: sprint
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Coverage data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ModuleCoverage"
+
+  /activity:
+    get:
+      operationId: getActivity
+      tags: [activity]
+      summary: Recent QA activity feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: projectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Activity feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    UploadResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        rowsImported:
+          type: integer
+        rowsSkipped:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string
+      required: [success, rowsImported, rowsSkipped, message, errors]
+
+    DashboardKpis:
+      type: object
+      properties:
+        totalTestCases:
+          type: integer
+        passedTests:
+          type: integer
+        failedTests:
+          type: integer
+        blockedTests:
+          type: integer
+        skippedTests:
+          type: integer
+        passRate:
+          type: number
+        totalDefects:
+          type: integer
+        openDefects:
+          type: integer
+        criticalDefects:
+          type: integer
+        defectDensity:
+          type: number
+        coveragePercent:
+          type: number
+        activeTesterCount:
+          type: integer
+      required:
+        - totalTestCases
+        - passedTests
+        - failedTests
+        - blockedTests
+        - skippedTests
+        - passRate
+        - totalDefects
+        - openDefects
+        - criticalDefects
+        - defectDensity
+        - coveragePercent
+        - activeTesterCount
+
+    TrendPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        passRate:
+          type: number
+        openDefects:
+          type: integer
+        newDefects:
+          type: integer
+        closedDefects:
+          type: integer
+        testExecuted:
+          type: integer
+      required: [date, passRate, openDefects, newDefects, closedDefects, testExecuted]
+
+    RiskInsights:
+      type: object
+      properties:
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        insights:
+          type: array
+          items:
+            $ref: "#/components/schemas/Insight"
+        recommendations:
+          type: array
+          items:
+            type: string
+        topRiskyModules:
+          type: array
+          items:
+            type: string
+      required: [riskLevel, insights, recommendations, topRiskyModules]
+
+    Insight:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        value:
+          type: string
+      required: [type, title, description, severity, value]
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        createdAt:
+          type: string
+      required: [id, name, createdAt]
+
+    StatusCount:
+      type: object
+      properties:
+        status:
+          type: string
+        count:
+          type: integer
+      required: [status, count]
+
+    ModuleCount:
+      type: object
+      properties:
+        module:
+          type: string
+        total:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        blocked:
+          type: integer
+      required: [module, total, passed, failed, blocked]
+
+    TestCasePage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TestCase"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [data, total, page, limit]
+
+    TestCase:
+      type: object
+      properties:
+        id:
+          type: integer
+        testCaseId:
+          type: string
+        title:
+          type: string
+        module:
+          type: string
+        priority:
+          type: string
+        status:
+          type: string
+        assignedTo:
+          type: ["string", "null"]
+        sprint:
+          type: ["string", "null"]
+        executedAt:
+          type: ["string", "null"]
+        projectId:
+          type: integer
+        projectName:
+          type: string
+      required: [id, testCaseId, title, module, priority, status, projectId, projectName]
+
+    DefectPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Defect"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [data, total, page, limit]
+
+    Defect:
+      type: object
+      properties:
+        id:
+          type: integer
+        defectId:
+          type: string
+        title:
+          type: string
+        module:
+          type: string
+        severity:
+          type: string
+        priority:
+          type: string
+        status:
+          type: string
+        assignedTo:
+          type: ["string", "null"]
+        reportedBy:
+          type: ["string", "null"]
+        sprint:
+          type: ["string", "null"]
+        reportedAt:
+          type: ["string", "null"]
+        resolvedAt:
+          type: ["string", "null"]
+        projectId:
+          type: integer
+        projectName:
+          type: string
+      required: [id, defectId, title, module, severity, priority, status, projectId, projectName]
+
+    TesterPerformance:
+      type: object
+      properties:
+        testerName:
+          type: string
+        testsExecuted:
+          type: integer
+        testsPassed:
+          type: integer
+        testsFailed:
+          type: integer
+        defectsFound:
+          type: integer
+        passRate:
+          type: number
+        productivity:
+          type: number
+      required: [testerName, testsExecuted, testsPassed, testsFailed, defectsFound, passRate, productivity]
+
+    ModuleCoverage:
+      type: object
+      properties:
+        module:
+          type: string
+        totalRequirements:
+          type: integer
+        coveredRequirements:
+          type: integer
+        coveragePercent:
+          type: number
+        totalTests:
+          type: integer
+        passedTests:
+          type: integer
+        defectCount:
+          type: integer
+      required: [module, totalRequirements, coveredRequirements, coveragePercent, totalTests, passedTests, defectCount]
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        entityType:
+          type: string
+        entityId:
+          type: string
+        action:
+          type: string
+        description:
+          type: string
+        performedBy:
+          type: ["string", "null"]
+        projectName:
+          type: string
+        createdAt:
+          type: string
+      required: [id, entityType, entityId, action, description, projectName, createdAt]

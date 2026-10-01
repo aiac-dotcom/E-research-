@@ -1,0 +1,23 @@
+[Unit]
+Description=QA and University Ranking Dashboard API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=qa-app
+Group=qa-app
+WorkingDirectory=/opt/qa-dashboard
+# Confirm the Node 24 binary location with: command -v node
+ExecStart=/usr/bin/node /opt/qa-dashboard/server-install/manage.mjs start
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/qa-dashboard/Data
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!server-install/.env.example
+# Ranking workbooks are licensed QS data: keep them on the server, never in this public repository.
+Data/
+downloads/
+*.log
+.DS_Store
